@@ -102,7 +102,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 
         final ProgressLogger progress = new ProgressLogger(log);
-        ExecutorService service = Executors.newSingleThreadExecutor();
+        ExecutorService service = Executors.newCachedThreadPool();
 
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
@@ -113,13 +113,14 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             }
 
             for (final SinglePassSamProgram program : programs) {
-                program.acceptRead(rec, ref);
+            	service.execute(new Runnable(){
+                	public void run(){
+                		program.acceptRead(rec, ref);
+                	}
+            	});	
             }
-            service.execute(new Runnable(){
-            	public void run(){
-                    progress.record(rec);
-            	}
-            });
+            progress.record(rec);
+           
             // See if we need to terminate early?
             if (stopAfter > 0 && progress.getCount() >= stopAfter) {
                 break;

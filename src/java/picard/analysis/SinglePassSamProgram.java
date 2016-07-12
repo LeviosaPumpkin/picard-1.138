@@ -20,7 +20,8 @@ import picard.cmdline.StandardOptionDefinitions;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
-
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 /**
  * Super class that is designed to provide some consistent structure between subclasses that
  * simply iterate once over a coordinate sorted BAM and collect information from the records
@@ -101,6 +102,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 
         final ProgressLogger progress = new ProgressLogger(log);
+        ExecutorService service = Executors.newSingleThreadExecutor();
 
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
@@ -113,9 +115,11 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             for (final SinglePassSamProgram program : programs) {
                 program.acceptRead(rec, ref);
             }
-
-            progress.record(rec);
-
+            service.execute(new Runnable(){
+            	public void run(){
+                    progress.record(rec);
+            	}
+            });
             // See if we need to terminate early?
             if (stopAfter > 0 && progress.getCount() >= stopAfter) {
                 break;
@@ -126,6 +130,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
                 break;
             }
         }
+        service.shutdown();
+
 
         CloserUtil.close(in);
 

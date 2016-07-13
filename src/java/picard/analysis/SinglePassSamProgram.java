@@ -102,8 +102,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 
         final ProgressLogger progress = new ProgressLogger(log);
-        ExecutorService service = Executors.newCachedThreadPool();
-
+        ExecutorService service = Executors.newSingleThreadExecutor();
+        long start = System.nanoTime();
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
             if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -111,14 +111,14 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             } else {
                 ref = walker.get(rec.getReferenceIndex());
             }
-
-            for (final SinglePassSamProgram program : programs) {
-            	service.execute(new Runnable(){
-                	public void run(){
-                		program.acceptRead(rec, ref);
+            
+            service.execute(new Runnable(){
+            	public void run(){
+            		for (final SinglePassSamProgram program : programs) {
+            			program.acceptRead(rec, ref);
                 	}
-            	});	
-            }
+            	}
+            });	
             progress.record(rec);
            
             // See if we need to terminate early?
@@ -131,6 +131,9 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
                 break;
             }
         }
+        long end = System.nanoTime();
+        long time = end - start;
+        System.out.println("Elapsed: " + time);
         service.shutdown();
 
 

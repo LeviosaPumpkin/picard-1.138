@@ -18,10 +18,14 @@ import picard.cmdline.Option;
 import picard.cmdline.StandardOptionDefinitions;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 /**
  * Super class that is designed to provide some consistent structure between subclasses that
  * simply iterate once over a coordinate sorted BAM and collect information from the records
@@ -42,6 +46,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
     @Option(doc = "Stop after processing N reads, mainly for debugging.")
     public long STOP_AFTER = 0;
+    
+    public static final int MAX_PAIRS = 1000;
 
     private static final Log log = Log.getInstance(SinglePassSamProgram.class);
 
@@ -102,7 +108,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 
         final ProgressLogger progress = new ProgressLogger(log);
-        ExecutorService service = Executors.newSingleThreadExecutor();
+        ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()/2);
+        List<Object[]> pairs = new ArrayList<Object[]>(MAX_PAIRS);
         long start = System.nanoTime();
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
@@ -112,13 +119,25 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
                 ref = walker.get(rec.getReferenceIndex());
             }
             
-            service.execute(new Runnable(){
-            	public void run(){
-            		for (final SinglePassSamProgram program : programs) {
-            			program.acceptRead(rec, ref);
-                	}
-            	}
-            });	
+            pairs.add(new Object[]{rec, ref});
+            
+            if(pairs.size() < MAX_PAIRS){
+            	continue;
+            }
+            final List<Object[]> tmpPairs = pairs;
+            pairs.clear();
+            
+			service.execute(new Runnable() {
+				public void run() {
+					for (Object[] objects : tmpPairs) {
+						for (final SinglePassSamProgram program : programs) {
+							SAMRecord record = (SAMRecord) objects[0];
+							ReferenceSequence reference = (ReferenceSequence) objects[1];
+							program.acceptRead(record, reference);
+						}
+					}
+				}
+			});
             progress.record(rec);
            
             // See if we need to terminate early?

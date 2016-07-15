@@ -26,8 +26,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Super class that is designed to provide some consistent structure between subclasses that
  * simply iterate once over a coordinate sorted BAM and collect information from the records
@@ -116,7 +115,6 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
         final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         List<Object[]> pairs = new ArrayList<Object[]>(MAX_PAIRS);
         final BlockingQueue<List<Object[]>> taskQueue = new LinkedBlockingQueue<List<Object[]>>(QUEUE_CAPACITY);
-        long start = System.nanoTime();
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
             if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -135,7 +133,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}            //final List<Object[]> tmpPairs = pairs;
+			}            
+            //final List<Object[]> tmpPairs = pairs;
             pairs.clear();
             
             service.execute(new Runnable(){
@@ -147,8 +146,6 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             				public void run() {
             					for (Object[] objects : tmpPairs) {
             						for (final SinglePassSamProgram program : programs) {
-            							//SAMRecord record = (SAMRecord) objects[0];
-            							//ReferenceSequence reference = (ReferenceSequence) objects[1];
             							program.acceptRead((SAMRecord) objects[0], (ReferenceSequence) objects[1]);
             						}
             					}
@@ -172,8 +169,6 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
                 break;
             }
         }
-        long end = System.nanoTime();
-        long time = end - start;
         System.out.println("Progress.getCount() " + progress.getCount());
         service.shutdown();
 

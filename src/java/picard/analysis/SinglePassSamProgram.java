@@ -115,7 +115,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
         final ProgressLogger progress = new ProgressLogger(log);
         final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         List<Object[]> pairs = new ArrayList<Object[]>(MAX_PAIRS);
-        final BlockingQueue<List<Object[]>> taskQueue = new LinkedBlockingQueue<List<Object[]>>(QUEUE_CAPACITY);
+        //final BlockingQueue<List<Object[]>> taskQueue = new LinkedBlockingQueue<List<Object[]>>(QUEUE_CAPACITY);
         final Semaphore sem = new Semaphore(6);
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
@@ -130,16 +130,16 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             if(pairs.size() < MAX_PAIRS){
             	continue;
             }
-            try {
+           /* try {
             	taskQueue.put(pairs);
 
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}            
-            //final List<Object[]> tmpPairs = pairs;
+			}            */
+            final List<Object[]> tmpPairs = pairs;
             pairs.clear();
             
-            service.execute(new Runnable(){
+            /*service.execute(new Runnable(){
             	public void run(){
             		while(true){
             			try {
@@ -155,13 +155,28 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             					sem.release();
             				}
             			});
-            		} catch (InterruptedException e) {
-            			e.printStackTrace();
-					}
+            			} catch (InterruptedException e) {
+            				e.printStackTrace();
+						}
             		}
             	}
-            });
-            progress.record(rec);
+            });*/
+			try {
+				sem.acquire();
+				service.execute(new Runnable() {
+					public void run() {
+						for (Object[] objects : tmpPairs) {
+							for (final SinglePassSamProgram program : programs) {
+								program.acceptRead((SAMRecord) objects[0], (ReferenceSequence) objects[1]);
+							}
+						}
+						sem.release();
+					}
+				});
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			progress.record(rec);
            
             // See if we need to terminate early?
             if (stopAfter > 0 && progress.getCount() >= stopAfter) {

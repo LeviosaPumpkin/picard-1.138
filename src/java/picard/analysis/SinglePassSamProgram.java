@@ -26,6 +26,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 /**
  * Super class that is designed to provide some consistent structure between subclasses that
@@ -115,6 +116,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
         final ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         List<Object[]> pairs = new ArrayList<Object[]>(MAX_PAIRS);
         final BlockingQueue<List<Object[]>> taskQueue = new LinkedBlockingQueue<List<Object[]>>(QUEUE_CAPACITY);
+        final Semaphore sem = new Semaphore(6);
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
             if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -142,13 +144,15 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             		while(true){
             			try {
             				final List<Object[]> tmpPairs = taskQueue.take();
-            			service.execute(new Runnable() {
+            				sem.acquire();
+            				service.execute(new Runnable() {
             				public void run() {
             					for (Object[] objects : tmpPairs) {
             						for (final SinglePassSamProgram program : programs) {
             							program.acceptRead((SAMRecord) objects[0], (ReferenceSequence) objects[1]);
             						}
             					}
+            					sem.release();
             				}
             			});
             		} catch (InterruptedException e) {

@@ -49,7 +49,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
     @Option(doc = "Stop after processing N reads, mainly for debugging.")
     public long STOP_AFTER = 0;
     
-    public static final int MAX_PAIRS = 100000;
+    public static final int MAX_PAIRS = 1000;
     
     public static final int QUEUE_CAPACITY = 10;
 
@@ -125,28 +125,30 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             }
             
             pairs.add(new Object[]{rec, ref});
+			progress.record(rec);
+
             
-            if(pairs.size() < MAX_PAIRS && progress.getCount() < stopAfter){
+            if(pairs.size() < MAX_PAIRS&& progress.getCount() < stopAfter){
             	continue;
             }
             final List<Object[]> tmpPairs = pairs;
-            pairs.clear();
-			try {
+            pairs = new ArrayList<Object[]>(MAX_PAIRS);
+            try {
 				sem.acquire();
-				service.execute(new Runnable() {
-					public void run() {
-						for (Object[] objects : tmpPairs) {
-							for (final SinglePassSamProgram program : programs) {
-								program.acceptRead((SAMRecord) objects[0], (ReferenceSequence) objects[1]);
-							}
-						}
-						sem.release();
-					}
-				});
-			} catch (InterruptedException e) {
+            } catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			progress.record(rec);
+			service.execute(new Runnable() {
+				public void run() {
+					for (Object[] objects : tmpPairs) {
+						for (final SinglePassSamProgram program : programs) {
+							program.acceptRead((SAMRecord) objects[0], (ReferenceSequence) objects[1]);
+						}
+					}
+					sem.release();
+				}
+			});
+			
            
             // See if we need to terminate early?
             if (stopAfter > 0 && progress.getCount() >= stopAfter) {
@@ -184,5 +186,4 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
     /** Should be implemented by subclasses to do one-time finalization work. */
     protected abstract void finish();
-
 }

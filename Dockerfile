@@ -28,8 +28,4 @@ RUN ant clean all && \
     rm -rf lib && \
     rm build.xml
 
-RUN mkdir /usr/working
-WORKDIR /usr/working
-
-ENTRYPOINT ["/usr/picard/docker_helper.sh"]
-CMD [""]
+ENTRYPOINT ["./docker_helper.sh"]

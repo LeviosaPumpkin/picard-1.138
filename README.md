@@ -1,42 +1,17 @@
-[![Coverage Status](https://coveralls.io/repos/github/broadinstitute/picard/badge.svg?branch=master)](https://coveralls.io/github/broadinstitute/picard?branch=master)
 [![Build Status](https://travis-ci.org/broadinstitute/picard.svg?branch=master)](https://travis-ci.org/broadinstitute/picard)
 
 A set of Java command line tools for manipulating high-throughput sequencing (HTS) data and formats.  
 
-Picard is implemented using the HTSJDK Java library [HTSJDK][1] to support
-accessing file formats that are commonly used for high-throughput
-sequencing data such as [SAM][2] and [VCF][3].  
-
-As of version 2.0.1 (Nov. 2015) Picard requires Java 1.8 (jdk8u66). The last version to support Java 1.7 was release 1.141.
-
-To clone and build:
-Clone the repo:
-
-    git clone git@github.com:broadinstitute/picard.git
-    cd picard/
-    
-Clone htsjdk into a subdirectory:
-
-    ant clone-htsjdk
-Build:
-
-    ant
-
-Enjoy!
-
-    java -jar dist/picard.jar
-
-**NOTE:** Picard expects the *latest tagged release* version of HTSJDK. It is *not* guaranteed to be able to build from older versions of HTSJDK nor from the latest state of the HTSJDK master branch. When you run `ant clone-htsjdk` the first time, Picard will fetch the appropriate tagged version. Subsequently, to update HTSJDK (if for example you run into build issues) you can do so manually by running `git checkout <tag>` within your HTSJDK clone, where `<tag>` is the latest release tag number. You can find that number by running `git tag` in your HTSJDK clone and taking the highest number. 
-
-----
-
+Picard is implemented using the HTSJDK Java library[HTSJDK][1], supporting
+accessing of common file formats, such as [SAM][2] and [VCF][3], used for high-throughput
+sequencing data.  
 
 It's also possible to build a version of Picard that supports reading from
 GA4GH API, e.g. Google Genomics:
 
-* Fetch [gatk-tools-java](https://github.com/googlegenomics/gatk-tools-java) 
+* Fetch [gatk-tools-java](https://github.com/gatk-tools-java) 
  
-```git clone https://github.com/googlegenomics/gatk-tools-java```
+```git clone https://github.com/gatk-tools-java```
 
 * Build gatk-tools-java: 
 
@@ -73,7 +48,6 @@ GA4GH_CLIENT_SECRETS=../client_secrets.json
 ```
 For Java 7 (as opposed to 8) use ```alpn-boot-7.1.3.v20150130.jar```.
 
-Picard is migrating to semantic versioning (http://semver.org/). We will eventually adhere to it strictly and bump our major version whenever there are breaking changes to our API, but until we more clearly define what constitutes our official API, clients should assume that every release potentially contains at least minor changes to public methods.
 
 Please see the [Picard Documentation](http://broadinstitute.github.io/picard) for more information.
 
